@@ -1,9 +1,9 @@
-MAGIC_COOKIE = b'0xabcddcba'
+MAGIC_COOKIE = 0xabcddcba
 
 UDP_MSG_TYPE = {
-    "offer": b'0x2',
-    "request": b'0x3',
-    "payload": b'0x4'
+    "offer": 0x2,
+    "request": 0x3,
+    "payload": 0x4
 }
 
 CLIENT_STATE = {

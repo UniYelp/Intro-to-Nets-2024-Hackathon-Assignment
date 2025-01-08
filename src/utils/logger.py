@@ -1,30 +1,32 @@
 from constants.colors import ERROR, INFO, RESET, TIMESTAMP
 from utils.time import get_formatted_time
 
-INFO_MSG = 'INFO'
-ERR_MSG = 'ERROR'
+INFO_MSG = "INFO"
+ERR_MSG = "ERROR"
 
 
-class Logger():
+class Logger:
     @staticmethod
-    def print(msg: str, /, color: str, full_color=True, end="\n\n", type: str = None):
-        print(f"{color}{f"{type}:{RESET if not full_color else ""} " if type is not None else ""}{
-              msg}{RESET}", end=end)
+    def print(
+        msg: str, /, color: str, msg_type: str = None, display_type=True, full_color=True, stamp=False, end="\n\n"
+    ):
+        if stamp:
+            Logger.stamp()
+        mid = f"{msg_type}:{RESET if not full_color else ''} " if msg_type is not None and display_type else ""
+        print(f"{color}{mid}{msg}{RESET}", end=end)
 
     @staticmethod
     def stamp():
-        Logger.print(f"{get_formatted_time()}>", color=TIMESTAMP, end=' ')
+        Logger.print(f"{get_formatted_time()}>", color=TIMESTAMP, end=" ")
 
     @staticmethod
-    def info(msg: str, /, full_color: bool = True, end: str = "\n\n", stamp=False):
-        if stamp:
-            Logger.stamp()
-        Logger.print(msg, type=INFO_MSG, color=INFO,
-                     full_color=full_color, end=end)
+    def info(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
+        Logger.print(
+            msg, msg_type=INFO_MSG, color=INFO, full_color=full_color, display_type=display_type, stamp=stamp, end=end
+        )
 
     @staticmethod
-    def error(msg: str, /, full_color: bool = True, end: str = "\n\n", stamp=False):
-        if stamp:
-            Logger.stamp()
-        Logger.print(msg, type=ERR_MSG, color=ERROR,
-                     full_color=full_color, end=end)
+    def error(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
+        Logger.print(
+            msg, msg_type=ERR_MSG, color=ERROR, full_color=full_color, display_type=display_type, stamp=stamp, end=end
+        )

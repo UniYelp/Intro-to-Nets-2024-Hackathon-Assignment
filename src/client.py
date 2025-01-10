@@ -48,7 +48,6 @@ def get_int(msg):
 
 
 def init():
-    # Todo: input validation
     file_size = get_file_size()
     tcp_connections = get_int("Number of TCP connections: ")
     udp_connections = get_int("Number of UDP connections: ")

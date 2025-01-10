@@ -8,7 +8,7 @@ from src.constants.colors import INVIS
 from src.utils.logger import Logger
 from src.utils.errors import InvalidMessageError
 from src.utils.udp import decode_udp, encode_udp
-from src.utils.validations import validate_msg
+from src.utils.validations import validate_msg, validate_msg_type
 
 udp_port = int(os.getenv("UDP_PORT", 13117))
 tcp_port = int(os.getenv("TCP_PORT", 14117))
@@ -24,12 +24,14 @@ def offer(s_udp: socket):
 
 
 def handle_udp(s_udp: socket):
+    _msg_type = "request"
     Logger.info("Handling UDP", stamp=True, full_color=False)
 
     try:
-        data, addr = decode_udp(s_udp, "request")
+        data, addr = decode_udp(s_udp, _msg_type)
 
         validate_msg(data)
+        validate_msg_type(data, _msg_type)
 
         Logger.warn(f"{str(data)}")
     except (struct.error, InvalidMessageError) as err:

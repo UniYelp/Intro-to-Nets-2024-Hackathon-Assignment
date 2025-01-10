@@ -16,15 +16,16 @@ offer_tcp_port = 54321 & 0xFFFF
 def main():
     try:
         Logger.print("Give us a score of 100% (please ╰(*°▽°*)╯)", color=INVIS)
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind(("", port))
+
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s_udp:
+            s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s_udp.bind(("", port))
 
             ip = socket.gethostbyname(socket.gethostname())
 
             Logger.info(f"Server started, listening on IP address {ip}", display_type=False, stamp=True)
 
-            offer_thread = threading.Thread(target=offer, args=(s,))
+            offer_thread = threading.Thread(target=offer, args=(s_udp,))
             offer_thread.daemon = True
             offer_thread.start()
 
@@ -38,7 +39,7 @@ def main():
         Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")
 
 
-def offer(s: socket):
+def offer(s_udp: socket):
     Logger.info("sent offer")
 
     offer_message = struct.pack(
@@ -49,9 +50,9 @@ def offer(s: socket):
         offer_tcp_port,
     )
 
-    s.sendto(offer_message, ("127.0.0.1", port))
+    s_udp.sendto(offer_message, ("127.0.0.1", port))
 
-    threading.Timer(1, offer, [s]).start()
+    threading.Timer(1, offer, [s_udp]).start()
 
 
 if __name__ == "__main__":

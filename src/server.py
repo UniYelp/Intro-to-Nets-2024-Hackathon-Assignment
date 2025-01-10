@@ -17,7 +17,9 @@ def main():
     try:
         Logger.print("Give us a score of 100% (please ╰(*°▽°*)╯)", color=INVIS)
 
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s_udp:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s_udp, socket.socket(
+            socket.AF_INET, socket.SOCK_STREAM
+        ) as s_tcp:
             s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s_udp.bind(("", port))
 

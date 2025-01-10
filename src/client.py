@@ -40,7 +40,7 @@ def main():
                 decoded_data, addr = get_offer(s)
                 print(f"Received offer from {addr}")
             except InvalidMessageError as err:
-                Logger.error(str(err))
+                Logger.warn(str(err))
 
         # open connections with timers
         # TODO

@@ -1,7 +1,10 @@
 from constants.colors import ERROR, INFO, RESET, TIMESTAMP
 from utils.time import get_formatted_time
 
+from src.constants.colors import WARN
+
 INFO_MSG = "INFO"
+WARN_MSG = "WARN"
 ERR_MSG = "ERROR"
 
 
@@ -23,6 +26,12 @@ class Logger:
     def info(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
         Logger.print(
             msg, msg_type=INFO_MSG, color=INFO, full_color=full_color, display_type=display_type, stamp=stamp, end=end
+        )
+
+    @staticmethod
+    def warn(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
+        Logger.print(
+            msg, msg_type=WARN_MSG, color=WARN, full_color=full_color, display_type=display_type, stamp=stamp, end=end
         )
 
     @staticmethod

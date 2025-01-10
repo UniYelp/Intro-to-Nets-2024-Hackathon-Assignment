@@ -70,9 +70,11 @@ def main():
     try:
         file_size, tcp_connections, udp_connections = init()
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(("127.0.0.1", 13117))
+        s_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s_udp.bind(("127.0.0.1", 13117))
+
+
 
         Logger.info("Client started, listening for offer requests...", stamp=True, display_type=False)
 
@@ -80,14 +82,28 @@ def main():
             i = 0
             while i < udp_connections:
                 try:
-                    decoded_data, addr = get_offer(s)
+                    decoded_data, addr = get_offer(s_udp)
                     print(f"Received offer from {addr} ~ {decoded_data=}")
                     message = encode_udp("request", file_size)
-                    s.sendto(message, (addr[0], decoded_data[2]))
+                    s_udp.sendto(message, (addr[0], decoded_data[2]))
                     i += 1
                 except (struct.error, InvalidMessageError) as err:
                     Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
 
+            i = 0
+            while i < tcp_connections:
+                try:
+                    decoded_data, addr = get_offer(s_udp)
+                    print(f"Received offer from {addr} ~ {decoded_data=}")
+                    message = encode_udp("request", file_size)
+                    s_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    s_tcp.send((str(file_size) + "\n").encode())
+                    response = s_tcp.recv(1024).decode()
+                    s_tcp.close()
+                    i += 1
+                except (struct.error, InvalidMessageError) as err:
+                    Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
             # open connections with timers
             # TODO
 

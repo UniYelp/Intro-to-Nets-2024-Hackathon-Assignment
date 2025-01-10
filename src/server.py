@@ -9,30 +9,27 @@ from constants.colors import INVIS
 from utils.logger import Logger
 
 port = int(os.getenv("PORT", 13117))
-offer_udp_port = 12345 & 0xFF
-offer_tcp_port = 54321 & 0xFF
+offer_udp_port = 12345 & 0xFFFF
+offer_tcp_port = 54321 & 0xFFFF
 
 
 def main():
-    global s
-
     try:
         Logger.print("Give us a score of 100% (please ╰(*°▽°*)╯)", color=INVIS)
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(("", port))
 
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(("", port))
+            ip = socket.gethostbyname(socket.gethostname())
 
-        ip = socket.gethostbyname(socket.gethostname())
+            Logger.info(f"Server started, listening on IP address {ip}", display_type=False, stamp=True)
 
-        Logger.info(f"Server started, listening on IP address {ip}", display_type=False, stamp=True)
+            offer_thread = threading.Thread(target=offer, args=(s,))
+            offer_thread.daemon = True
+            offer_thread.start()
 
-        offer_thread = threading.Thread(target=offer, args=(ip,))
-        offer_thread.daemon = True
-        offer_thread.start()
-
-        while True:
-            time.sleep(1)
+            while True:
+                time.sleep(1)
     except socket.error as err:
         Logger.error(f"socket creation failed with error {str(err)}", full_color=False)
     except KeyboardInterrupt:
@@ -41,8 +38,7 @@ def main():
         Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")
 
 
-def offer(ip: str):
-    global s
+def offer(s: socket):
     Logger.info("sent offer")
 
     offer_message = struct.pack(
@@ -53,9 +49,9 @@ def offer(ip: str):
         offer_tcp_port,
     )
 
-    s.sendto(offer_message, (ip, port))
+    s.sendto(offer_message, ("127.0.0.1", port))
 
-    threading.Timer(1, offer, [ip]).start()
+    threading.Timer(1, offer, [s]).start()
 
 
 if __name__ == "__main__":

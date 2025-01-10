@@ -4,7 +4,7 @@ import struct
 import time
 import os
 
-from constants.app import MAGIC_COOKIE, UDP_MSG_TYPE
+from constants.app import MAGIC_COOKIE, UDP_MSG_TYPE, UDP_FMT
 from constants.colors import INVIS
 from utils.logger import Logger
 
@@ -43,7 +43,7 @@ def offer(s_udp: socket):
     Logger.info("sent offer")
 
     offer_message = struct.pack(
-        "!IBHH",  # Format string: 4 bytes for MAGIC_COOKIE, 1 byte for MESSAGE_TYPE, 2 bytes for UDP and TCP ports,
+        UDP_FMT,
         MAGIC_COOKIE,
         UDP_MSG_TYPE["offer"],
         offer_udp_port,

@@ -3,7 +3,7 @@ import struct
 
 from src.utils.errors import InvalidMessageError
 from src.utils.logger import Logger
-from src.utils.udp import decode_udp
+from src.utils.udp import decode_udp, encode_udp
 from src.utils.validations import validate_msg
 
 
@@ -62,31 +62,38 @@ def get_offer(s: socket):
 
     validate_msg(decoded_data)
 
-    print(f"Received message: from {addr}")
+    Logger.info(f"Received message: from {addr}")
     return decoded_data, addr
 
 
 def main():
-    file_size, tcp_connections, udp_connections = init()
+    try:
+        file_size, tcp_connections, udp_connections = init()
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(("127.0.0.1", 13117))
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(("127.0.0.1", 13117))
 
-    Logger.info("Client started, listening for offer requests...")
+        Logger.info("Client started, listening for offer requests...", stamp=True, display_type=False)
 
-    while True:
-        for i in range(udp_connections):
-            try:
-                decoded_data, addr = get_offer(s)
-                print(f"Received offer from {addr} ~ {decoded_data=}")
-            except struct.error | InvalidMessageError as err:
-                Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
+        while True:
+            i = 0
+            while i < udp_connections:
+                try:
+                    decoded_data, addr = get_offer(s)
+                    print(f"Received offer from {addr} ~ {decoded_data=}")
+                    message = encode_udp("request", file_size)
+                    s.sendto(message, (addr[0], decoded_data[2]))
+                    i += 1
+                except (struct.error, InvalidMessageError) as err:
+                    Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
 
-        # open connections with timers
-        # TODO
+            # open connections with timers
+            # TODO
 
-        print("All transfers complete, listening to offer requests")
+            print("All transfers complete, listening to offer requests")
+    except KeyboardInterrupt:
+        Logger.info("Program terminated by user")
 
 
 if __name__ == "__main__":

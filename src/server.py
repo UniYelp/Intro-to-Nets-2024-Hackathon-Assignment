@@ -32,7 +32,7 @@ def handle_udp(s_udp: socket):
         validate_msg(data)
 
         Logger.warn(f"{str(data)}")
-    except struct.error | InvalidMessageError as err:
+    except (struct.error, InvalidMessageError) as err:
         Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
     except Exception as err:
         Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")

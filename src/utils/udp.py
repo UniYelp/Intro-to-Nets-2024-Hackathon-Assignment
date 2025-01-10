@@ -1,7 +1,7 @@
 import socket
 import struct
 
-from src.constants.app import MAGIC_COOKIE, UDP_MSG_FMT, UDP_MSG_SIZE, UDP_MSG_TYPE
+from src.constants.app import MAGIC_COOKIE, UDP_MSG_FMT, UDP_MSG_SIZE, UDP_MSG_TYPE, BUFFER_SIZE
 
 
 def encode_udp(msg_type: str, *data):
@@ -9,6 +9,6 @@ def encode_udp(msg_type: str, *data):
 
 
 def decode_udp(s_udp: socket, msg_type: str):
-    data, addr = s_udp.recvfrom(UDP_MSG_SIZE[msg_type])
+    data, addr = s_udp.recvfrom(BUFFER_SIZE)
     decoded_data = struct.unpack(UDP_MSG_FMT[msg_type], data)
     return decoded_data, addr

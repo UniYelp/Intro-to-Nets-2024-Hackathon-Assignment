@@ -4,13 +4,58 @@ import struct
 import time
 import os
 
-from constants.app import MAGIC_COOKIE, UDP_MSG_TYPE, UDP_FMT
-from constants.colors import INVIS
-from utils.logger import Logger
+from src.constants.colors import INVIS
+from src.utils.logger import Logger
+from src.utils.errors import InvalidMessageError
+from src.utils.udp import decode_udp, encode_udp
+from src.utils.validations import validate_msg
 
-port = int(os.getenv("PORT", 13117))
-offer_udp_port = 12345 & 0xFFFF
-offer_tcp_port = 54321 & 0xFFFF
+udp_port = int(os.getenv("UDP_PORT", 13117))
+tcp_port = int(os.getenv("TCP_PORT", 14117))
+
+
+def offer(s_udp: socket):
+    Logger.info("sent offer", stamp=True, full_color=False)
+
+    offer_message = encode_udp("offer", udp_port, tcp_port)
+    s_udp.sendto(offer_message, ("127.0.0.1", udp_port))
+
+    threading.Timer(1, offer, [s_udp]).start()
+
+
+def handle_udp(s_udp: socket):
+    Logger.info("Handling UDP", stamp=True, full_color=False)
+
+    try:
+        data, addr = decode_udp(s_udp, "request")
+
+        validate_msg(data)
+
+        Logger.warn(f"{str(data)}")
+    except struct.error | InvalidMessageError as err:
+        Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
+    except Exception as err:
+        Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")
+
+    threading.Timer(1, handle_udp, [s_udp]).start()
+
+
+def handle_tcp(s_tcp: socket):
+    Logger.info("Handling TCP", stamp=True, full_color=False)
+    threading.Timer(1, handle_tcp, [s_tcp]).start()
+
+
+def handle_requests(s_udp: socket, s_tcp: socket):
+    Logger.info("Accepting requests")
+
+    udp_thread = threading.Thread(target=handle_udp, args=(s_udp,))
+    tcp_thread = threading.Thread(target=handle_tcp, args=(s_tcp,))
+
+    udp_thread.daemon = True
+    tcp_thread.daemon = True
+
+    udp_thread.start()
+    tcp_thread.start()
 
 
 def main():
@@ -21,14 +66,31 @@ def main():
             socket.AF_INET, socket.SOCK_STREAM
         ) as s_tcp:
             s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s_udp.bind(("", port))
+            s_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+            s_udp.bind(("", udp_port))
+            s_tcp.bind(("", tcp_port))
+
+            s_tcp.listen(5)  # Allow up to 5 queued connections
 
             ip = socket.gethostbyname(socket.gethostname())
 
             Logger.info(f"Server started, listening on IP address {ip}", display_type=False, stamp=True)
 
+            requests_handler_thread = threading.Thread(
+                target=handle_requests,
+                args=(
+                    s_udp,
+                    s_tcp,
+                ),
+            )
+
+            requests_handler_thread.daemon = True
+
             offer_thread = threading.Thread(target=offer, args=(s_udp,))
             offer_thread.daemon = True
+
+            requests_handler_thread.start()
             offer_thread.start()
 
             while True:
@@ -39,22 +101,6 @@ def main():
         Logger.info("Program terminated by user")
     except Exception as err:
         Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")
-
-
-def offer(s_udp: socket):
-    Logger.info("sent offer")
-
-    offer_message = struct.pack(
-        UDP_FMT,
-        MAGIC_COOKIE,
-        UDP_MSG_TYPE["offer"],
-        offer_udp_port,
-        offer_tcp_port,
-    )
-
-    s_udp.sendto(offer_message, ("127.0.0.1", port))
-
-    threading.Timer(1, offer, [s_udp]).start()
 
 
 if __name__ == "__main__":

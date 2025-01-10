@@ -1,5 +1,5 @@
-from constants.colors import ERROR, INFO, RESET, TIMESTAMP
-from utils.time import get_formatted_time
+from src.constants.colors import ERROR, INFO, RESET, TIMESTAMP
+from src.utils.time import get_formatted_time
 
 from src.constants.colors import WARN
 

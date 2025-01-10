@@ -4,6 +4,7 @@ import struct
 import time
 import os
 
+from src.constants.app import BUFFER_SIZE
 from src.constants.colors import INVIS
 from src.utils.logger import Logger
 from src.utils.errors import InvalidMessageError
@@ -15,41 +16,44 @@ tcp_port = int(os.getenv("TCP_PORT", 14117))
 
 
 def offer(s_udp: socket):
-    Logger.info("sent offer", stamp=True, full_color=False)
+    Logger.info("sent offer", stamp=True)
 
     offer_message = encode_udp("offer", udp_port, tcp_port)
-    s_udp.sendto(offer_message, ("127.0.0.1", udp_port))
+    s_udp.sendto(offer_message, ("255.255.255.255", 13118))
 
     threading.Timer(1, offer, [s_udp]).start()
 
 
 def handle_udp(s_udp: socket):
-    _msg_type = "request"
-    Logger.info("Handling UDP", stamp=True, full_color=False)
+    rcv_msg_type = "request"
+    while True:
+        try:
+            data, addr = decode_udp(s_udp, rcv_msg_type)
+            validated_data = validate_msg(data, rcv_msg_type)
+            file_size = validated_data[0]
 
-    try:
-        data, addr = decode_udp(s_udp, _msg_type)
-
-        validate_msg(data)
-        validate_msg_type(data, _msg_type)
-
-        Logger.warn(f"{str(data)}")
-    except (struct.error, InvalidMessageError) as err:
-        Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
-    except Exception as err:
-        Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")
-
-    threading.Timer(1, handle_udp, [s_udp]).start()
+            Logger.info(
+                f"Received a UDP request from {addr} for a file of size {file_size}B", stamp=True, full_color=False
+            )
+        except (struct.error, InvalidMessageError) as err:
+            Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
+        except Exception as err:
+            Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")
 
 
 def handle_tcp(s_tcp: socket):
-    Logger.info("Handling TCP", stamp=True, full_color=False)
-    threading.Timer(1, handle_tcp, [s_tcp]).start()
+    while True:
+        conn, addr = s_tcp.accept()
+        Logger.info(f"Accepted TCP connection from {addr}")
+
+        data = conn.recv(BUFFER_SIZE)
+        data = int(data)
+        Logger.warn(f"{addr=} | {data=}")
+        Logger.info(f"Received a TCP request for a file of size {data=}B", stamp=True, full_color=False)
+        conn.close()
 
 
 def handle_requests(s_udp: socket, s_tcp: socket):
-    Logger.info("Accepting requests")
-
     udp_thread = threading.Thread(target=handle_udp, args=(s_udp,))
     tcp_thread = threading.Thread(target=handle_tcp, args=(s_tcp,))
 
@@ -68,14 +72,15 @@ def main():
             socket.AF_INET, socket.SOCK_STREAM
         ) as s_tcp:
             s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             s_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-            s_udp.bind(("", udp_port))
-            s_tcp.bind(("", tcp_port))
+            ip = socket.gethostbyname(socket.gethostname())
+
+            s_udp.bind((ip, udp_port))
+            s_tcp.bind((ip, tcp_port))
 
             s_tcp.listen(5)  # Allow up to 5 queued connections
-
-            ip = socket.gethostbyname(socket.gethostname())
 
             Logger.info(f"Server started, listening on IP address {ip}", display_type=False, stamp=True)
 

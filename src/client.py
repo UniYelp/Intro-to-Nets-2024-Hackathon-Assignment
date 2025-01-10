@@ -1,10 +1,14 @@
 import socket
 import struct
+import os
 
+from src.constants.app import BUFFER_SIZE
 from src.utils.errors import InvalidMessageError
 from src.utils.logger import Logger
 from src.utils.udp import decode_udp, encode_udp
 from src.utils.validations import validate_msg
+
+udp_port = int(os.getenv("UDP_PORT", 13118))
 
 
 def get_file_size():
@@ -58,12 +62,13 @@ def init():
 
 
 def get_offer(s: socket):
-    decoded_data, addr = decode_udp(s, "offer")
+    rcv_msg_type = "offer"
 
-    validate_msg(decoded_data)
+    data, addr = decode_udp(s, rcv_msg_type)
+    data = validate_msg(data, rcv_msg_type)
 
     Logger.info(f"Received message: from {addr}")
-    return decoded_data, addr
+    return data, addr
 
 
 def main():
@@ -72,9 +77,7 @@ def main():
 
         s_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s_udp.bind(("127.0.0.1", 13117))
-
-
+        s_udp.bind(("", udp_port))
 
         Logger.info("Client started, listening for offer requests...", stamp=True, display_type=False)
 
@@ -82,10 +85,10 @@ def main():
             i = 0
             while i < udp_connections:
                 try:
-                    decoded_data, addr = get_offer(s_udp)
-                    print(f"Received offer from {addr} ~ {decoded_data=}")
+                    data, addr = get_offer(s_udp)
+                    print(f"Received offer from {addr} ~ {data=}")
                     message = encode_udp("request", file_size)
-                    s_udp.sendto(message, (addr[0], decoded_data[2]))
+                    s_udp.sendto(message, (addr[0], data[0]))
                     i += 1
                 except (struct.error, InvalidMessageError) as err:
                     Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
@@ -93,13 +96,15 @@ def main():
             i = 0
             while i < tcp_connections:
                 try:
-                    decoded_data, addr = get_offer(s_udp)
-                    print(f"Received offer from {addr} ~ {decoded_data=}")
+                    data, addr = get_offer(s_udp)
+                    print(f"Received offer from {addr} ~ {data=}")
                     message = encode_udp("request", file_size)
                     s_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     s_tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    s_tcp.send((str(file_size) + "\n").encode())
-                    response = s_tcp.recv(1024).decode()
+
+                    s_tcp.connect((addr[0], data[1]))
+                    s_tcp.sendall((str(file_size) + "\n").encode())
+                    response = s_tcp.recv(BUFFER_SIZE).decode()
                     s_tcp.close()
                     i += 1
                 except (struct.error, InvalidMessageError) as err:

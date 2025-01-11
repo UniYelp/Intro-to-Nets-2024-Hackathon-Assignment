@@ -15,6 +15,8 @@ from utils.validations import validate_msg
 udp_port = int(os.getenv("UDP_PORT", 13117))
 tcp_port = int(os.getenv("TCP_PORT", 14117))
 
+# TODO: handle client udp port
+
 
 def offer(s_udp: socket):
     Logger.info("Broadcasting offer", stamp=True)

@@ -1,6 +1,7 @@
 import socket
 import struct
 import os
+from typing import Tuple
 
 from constants.app import BUFFER_SIZE
 from utils.inputs import get_file_size_input, get_int
@@ -27,7 +28,7 @@ def init():
     return file_size, int(tcp_connections), int(udp_connections)
 
 
-def get_offer(s: socket) -> (tuple[int, int], tuple[str, int]):
+def get_offer(s: socket) -> Tuple[Tuple[int, int], Tuple[str, int]]:
     """
     returns the first UDP offer message it encounters
     :param s:  UDP socket

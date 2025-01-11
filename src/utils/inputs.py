@@ -1,4 +1,4 @@
-from logger import Logger
+from .logger import Logger
 
 
 def get_file_size_input():
@@ -25,7 +25,7 @@ def get_file_size_input():
                 return size
     elif file_size[0:-2].isdigit():
         unit = file_size[-2:].upper()
-        size = int(file_size[0:2])
+        size = int(file_size[0:-2])
 
         match unit:
             case "GB":

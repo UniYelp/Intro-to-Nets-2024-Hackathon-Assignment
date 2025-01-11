@@ -1,6 +1,7 @@
 import socket
 import struct
 import os
+import time
 
 from constants.app import BUFFER_SIZE
 from utils.inputs import get_file_size_input, get_int
@@ -62,9 +63,17 @@ def handle_tcp(addr: str, port: int, file_size: int):
     message = str(file_size) + "\n"
     s_tcp.sendall(message.encode())
 
-    response = s_tcp.recv(BUFFER_SIZE).decode()
+    count = 0
+    start_time = time.time()
+    # get all the chunks
+    while count < file_size:
+        msg = s_tcp.recv(BUFFER_SIZE)
+        count += len(msg)
 
     s_tcp.close()
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Finished tcp transfer. transaction time: {elapsed_time:.6f} seconds")
 
 
 def main():

@@ -2,11 +2,11 @@ import socket
 import struct
 import os
 
-from src.constants.app import BUFFER_SIZE
-from src.utils.errors import InvalidMessageError
-from src.utils.logger import Logger
-from src.utils.udp import decode_udp, encode_udp
-from src.utils.validations import validate_msg
+from constants.app import BUFFER_SIZE
+from utils.errors import InvalidMessageError
+from utils.logger import Logger
+from utils.udp import decode_udp, encode_udp
+from utils.validations import validate_msg
 
 udp_port = int(os.getenv("UDP_PORT", 13118))
 

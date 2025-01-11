@@ -4,12 +4,12 @@ import struct
 import time
 import os
 
-from src.constants.app import BUFFER_SIZE
-from src.constants.colors import INVIS
-from src.utils.logger import Logger
-from src.utils.errors import InvalidMessageError
-from src.utils.udp import decode_udp, encode_udp
-from src.utils.validations import validate_msg, validate_msg_type
+from constants.app import BUFFER_SIZE
+from constants.colors import INVIS
+from utils.logger import Logger
+from utils.errors import InvalidMessageError
+from utils.udp import decode_udp, encode_udp
+from utils.validations import validate_msg, validate_msg_type
 
 udp_port = int(os.getenv("UDP_PORT", 13117))
 tcp_port = int(os.getenv("TCP_PORT", 14117))

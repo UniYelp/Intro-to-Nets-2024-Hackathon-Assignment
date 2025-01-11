@@ -1,5 +1,5 @@
-from src.constants.app import MAGIC_COOKIE, UDP_MSG_TYPE
-from src.utils.errors import InvalidMessageError, UnexpectedMessageError
+from constants.app import MAGIC_COOKIE, UDP_MSG_TYPE
+from utils.errors import InvalidMessageError, UnexpectedMessageError
 
 
 def is_msg_valid(msg: tuple):

@@ -3,65 +3,13 @@ import struct
 import os
 
 from constants.app import BUFFER_SIZE
+from utils.inputs import get_file_size_input, get_int
 from utils.errors import InvalidMessageError
 from utils.logger import Logger
 from utils.udp import decode_udp, encode_udp
 from utils.validations import validate_msg
 
 udp_port = int(os.getenv("UDP_PORT", 13118))
-
-
-def get_file_size():
-    """
-    prompts the user for a file size until input is valid.
-    supported formats: <int>GB, <int>MB, <int>KB, <int>G, <int>M, <int>K, <int>B, <int>
-    :return:
-        size: file size in bytes
-    """
-    file_size = input("File size: ")
-
-    if file_size.isdigit():
-        return int(file_size)
-    elif file_size[0:-1].isdigit():
-        size = int(file_size[0:-1])
-        match file_size[-1].upper():
-            case "G":
-                return size * 1024 * 1024 * 1024
-            case "M":
-                return size * 1024 * 1024
-            case "K":
-                return size * 1024
-            case "B":
-                return size
-    elif file_size[0:-2].isdigit():
-        unit = file_size[-2:].upper()
-        size = int(file_size[0:2])
-
-        match unit:
-            case "GB":
-                return size * 1024 * 1024 * 1024
-            case "MB":
-                return size * 1024 * 1024
-            case "KB":
-                return size * 1024
-
-    Logger.warn("Invalid value. please provide a valid file size in GB/MB/KB/B")
-    return get_file_size()
-
-
-def get_int(msg):
-    """
-    prompt the user for an int until input is valid
-    :param msg:
-        message to display while prompting
-    :return:
-        value: int input
-    """
-    value = input(msg)
-    if not value.isdigit():
-        Logger.warn("Invalid Value. Must be an integer.")
-        return get_int(msg)
-    return value
 
 
 def init():
@@ -72,7 +20,7 @@ def init():
         tcp_connections: number of tcp connections to open
         udp_connections: number of udp connections to open
     """
-    file_size = get_file_size()
+    file_size = get_file_size_input()
     tcp_connections = get_int("Number of TCP connections: ")
     udp_connections = get_int("Number of UDP connections: ")
     if not tcp_connections or not udp_connections or not file_size:

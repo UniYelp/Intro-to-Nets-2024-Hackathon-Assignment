@@ -23,9 +23,7 @@ def init():
     file_size = get_file_size_input()
     tcp_connections = get_int("Number of TCP connections: ")
     udp_connections = get_int("Number of UDP connections: ")
-    if not tcp_connections or not udp_connections or not file_size:
-        Logger.warn("Invalid inputs. please enter again.")
-        return init()
+
     return file_size, int(tcp_connections), int(udp_connections)
 
 

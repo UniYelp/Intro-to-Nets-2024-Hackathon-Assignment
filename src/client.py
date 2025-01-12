@@ -7,7 +7,7 @@ from constants.app import BUFFER_SIZE
 from utils.inputs import get_file_size_input, get_int
 from utils.errors import InvalidMessageError
 from utils.logger import Logger
-from utils.udp import decode_udp, encode_udp
+from utils.udp import decode_udp, encode_udp, decode_header_udp
 from utils.validations import validate_msg
 
 udp_port = int(os.getenv("UDP_PORT", 13118))
@@ -52,6 +52,20 @@ def get_offer(s: socket) -> tuple[tuple[int, int], tuple[str, int]]:
 def handle_udp(s_udp: socket, addr: str, port: int, file_size: int):
     message = encode_udp("request", file_size)
     s_udp.sendto(message, (addr, port))
+
+    count = 0
+    start_time = time.time()
+    # get all the chunks
+    while count < file_size:
+        (decoded_data, payload), addr = decode_header_udp(s_udp, "payload")
+        validate_msg(decoded_data, "payload")
+        count += len(payload)
+
+    s_udp.close()
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Finished tcp transfer. transaction time: {elapsed_time:.6f} seconds")
+
 
 
 def handle_tcp(addr: str, port: int, file_size: int):

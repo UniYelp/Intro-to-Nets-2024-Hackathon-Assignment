@@ -50,22 +50,31 @@ def get_offer(s: socket) -> tuple[tuple[int, int], tuple[str, int]]:
 
 
 def handle_udp(s_udp: socket, addr: str, port: int, file_size: int):
-    message = encode_udp("request", file_size)
+    msg_type = "request"
+    message = encode_udp(msg_type, file_size)
     s_udp.sendto(message, (addr, port))
 
+    msg_type = "payload"
     count = 0
     start_time = time.time()
+    s_udp.settimeout(1)
     # get all the chunks
-    while count < file_size:
-        (decoded_data, payload), addr = decode_header_udp(s_udp, "payload")
-        validate_msg(decoded_data, "payload")
-        count += len(payload)
 
-    s_udp.close()
+    while count < file_size:
+        try:
+            (decoded_data, payload), addr = decode_header_udp(s_udp, msg_type)
+            validate_msg(decoded_data, msg_type)
+            count += len(payload)
+            print(f"\r{count/file_size*100:.2f}% of file", end="", flush=True)
+        except struct.error:
+            continue
+        except socket.timeout:
+            print("\ntimeout")
+            break
+
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print(f"Finished tcp transfer. transaction time: {elapsed_time:.6f} seconds")
-
+    print(f"Finished udp transfer. transaction time: {elapsed_time:.6f} seconds. received {count/file_size*100}% of file")
 
 
 def handle_tcp(addr: str, port: int, file_size: int):

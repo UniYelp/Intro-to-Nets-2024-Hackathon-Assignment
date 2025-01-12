@@ -1,6 +1,7 @@
 import socket
 import struct
 import os
+import threading
 import time
 
 from constants.app import BUFFER_SIZE
@@ -58,7 +59,6 @@ def handle_udp(s_udp: socket, addr: str, port: int, file_size: int):
     count = 0
     start_time = time.time()
     s_udp.settimeout(1)
-    # get all the chunks
 
     while count < file_size:
         try:
@@ -69,12 +69,12 @@ def handle_udp(s_udp: socket, addr: str, port: int, file_size: int):
         except struct.error:
             continue
         except socket.timeout:
-            print("\ntimeout")
             break
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print(f"Finished udp transfer. transaction time: {elapsed_time:.6f} seconds. received {count/file_size*100}% of file")
+    print(f"\rFinished udp transfer. transaction time: {elapsed_time:.6f} seconds. received {count/file_size*100:.2f}% of file", end="", flush=True)
+    print("")
 
 
 def handle_tcp(addr: str, port: int, file_size: int):
@@ -92,11 +92,13 @@ def handle_tcp(addr: str, port: int, file_size: int):
     while count < file_size:
         msg = s_tcp.recv(BUFFER_SIZE)
         count += len(msg)
+        print(f"\r{count / file_size * 100:.2f}% of file", end="", flush=True)
 
     s_tcp.close()
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print(f"Finished tcp transfer. transaction time: {elapsed_time:.6f} seconds")
+    print(f"\rFinished tcp transfer. transaction time: {elapsed_time:.6f} seconds", end="", flush=True)
+    print("")
 
 
 def main():
@@ -118,13 +120,21 @@ def main():
             print(f"Received offer from {server_ip_address}")
 
             for i in range(udp_connections):
-                handle_udp(s_udp, server_ip_address, server_udp_port, file_size)
+                udp_thread = threading.Thread(target=handle_udp, args=(s_udp, server_ip_address, server_udp_port, file_size))
+                udp_thread.daemon = True
+                udp_thread.start()
+                # handle_udp(s_udp, server_ip_address, server_udp_port, file_size)
 
             for i in range(tcp_connections):
-                handle_tcp(server_ip_address, server_tcp_port, file_size)
+                tcp_thread = threading.Thread(target=handle_tcp,
+                                              args=(server_ip_address, server_tcp_port, file_size))
+                tcp_thread.daemon = True
+                tcp_thread.start()
+                # handle_tcp(server_ip_address, server_tcp_port, file_size)
 
-            # open connections with timers
-            # TODO
+            for thread in threading.enumerate():
+                if thread is not threading.main_thread():
+                    thread.join()
 
             print("All transfers complete, listening to offer requests")
     except KeyboardInterrupt:

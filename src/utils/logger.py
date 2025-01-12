@@ -1,15 +1,27 @@
-from src.constants.colors import RESET, INFO, WARN, ERROR, TIMESTAMP
+from enum import Enum
+
+from src.constants.colors import RESET, INFO, WARN, ERROR, TIMESTAMP, DEBUG
 from .stamp import get_formatted_time
 
-INFO_MSG = "INFO"
-WARN_MSG = "WARN"
-ERR_MSG = "ERROR"
+
+class LogLevels(Enum):
+    DEBUG = 0
+    INFO = 1
+    WARN = 2
+    ERROR = 3
 
 
 class Logger:
+    _log_level: LogLevels = LogLevels.INFO
+
+    @classmethod
+    @property
+    def log_level(cls):
+        return cls._log_level
+
     @staticmethod
     def print(
-        msg: str, /, color: str, msg_type: str = None, display_type=True, full_color=True, stamp=False, end="\n\n"
+            msg: str, /, color: str, msg_type: str = None, display_type=True, full_color=True, stamp=False, end="\n\n"
     ):
         if stamp:
             Logger.stamp()
@@ -21,19 +33,30 @@ class Logger:
         Logger.print(f"{get_formatted_time()}>", color=TIMESTAMP, end=" ")
 
     @staticmethod
-    def info(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
-        Logger.print(
-            msg, msg_type=INFO_MSG, color=INFO, full_color=full_color, display_type=display_type, stamp=stamp, end=end
-        )
+    def debug(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
+        if Logger._log_level.value <= LogLevels.DEBUG.value:
+            Logger.print(
+                msg, msg_type=LogLevels.DEBUG.name, color=DEBUG, full_color=full_color, display_type=display_type,
+                stamp=stamp, end=end
+            )
+
+    @staticmethod
+    def info(msg: str, /, display_type=True, full_color=True, stamp=False, always_display=False, end="\n\n"):
+        if always_display or Logger._log_level.value <= LogLevels.INFO.value:
+            Logger.print(
+                msg, msg_type=LogLevels.INFO.name, color=INFO, full_color=full_color, display_type=display_type, stamp=stamp, end=end
+            )
 
     @staticmethod
     def warn(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
-        Logger.print(
-            msg, msg_type=WARN_MSG, color=WARN, full_color=full_color, display_type=display_type, stamp=stamp, end=end
-        )
+        if Logger._log_level.value <= LogLevels.WARN.value:
+            Logger.print(
+                msg, msg_type=LogLevels.WARN.name, color=WARN, full_color=full_color, display_type=display_type, stamp=stamp, end=end
+            )
 
     @staticmethod
     def error(msg: str, /, display_type=True, full_color=True, stamp=False, end="\n\n"):
-        Logger.print(
-            msg, msg_type=ERR_MSG, color=ERROR, full_color=full_color, display_type=display_type, stamp=stamp, end=end
-        )
+        if Logger._log_level.value <= LogLevels.ERROR.value:
+            Logger.print(
+                msg, msg_type=LogLevels.ERROR.name, color=ERROR, full_color=full_color, display_type=display_type, stamp=stamp, end=end
+            )

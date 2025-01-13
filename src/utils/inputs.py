@@ -1,15 +1,7 @@
 from .logger import Logger
 
 
-def get_file_size_input():
-    """
-    prompts the user for a file size until input is valid.
-    supported formats: <int>GB, <int>MB, <int>KB, <int>G, <int>M, <int>K, <int>B, <int>
-    :return:
-        size: file size in bytes
-    """
-    file_size = input("File size: ")
-
+def parse_file_size(file_size: str):
     if file_size.isdigit():
         return int(file_size)
     elif file_size[0:-1].isdigit():
@@ -37,6 +29,22 @@ def get_file_size_input():
 
     Logger.warn("Invalid value. please provide a valid file size in GB/MB/KB/B")
     return get_file_size_input()
+
+def get_file_size_input():
+    """
+    prompts the user for a file size until input is valid.
+    supported formats: <int>GB, <int>MB, <int>KB, <int>G, <int>M, <int>K, <int>B, <int>
+    :return:
+        size: file size in bytes
+    """
+    while True:
+        file_size = input("File size: ")
+        value = parse_file_size(file_size)
+
+        if value:
+            return value
+
+        Logger.warn("Invalid value. please provide a valid file size in GB/MB/KB/B")
 
 
 def get_int(msg):

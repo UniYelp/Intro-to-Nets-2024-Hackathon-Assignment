@@ -5,16 +5,20 @@ import math
 import time
 import os
 
-from constants.app import BUFFER_SIZE
+from constants.app import BROADCAST_IP, BUFFER_SIZE
 from constants.colors import INVIS
 from constants.init import INIT_MSG
-from utils.logger import Logger
+from utils.logger import LogLevels, Logger
 from utils.errors import InvalidMessageError
 from utils.udp import decode_udp, encode_udp
 from utils.validations import validate_msg
 
 udp_port = int(os.getenv("UDP_PORT", 13117))
 tcp_port = int(os.getenv("TCP_PORT", 14117))
+
+client_udp_port = int(os.getenv("CLIENT_UDP_PORT", 13117))
+
+Logger._log_level = os.getenv("LOG_LEVEL", LogLevels.DEBUG)
 
 # TODO: handle client udp port
 
@@ -23,7 +27,7 @@ def offer(s_udp: socket):
     Logger.info("Broadcasting offer", stamp=True)
 
     offer_message = encode_udp("offer", udp_port, tcp_port)
-    s_udp.sendto(offer_message, ("255.255.255.255", 13118))
+    s_udp.sendto(offer_message, (BROADCAST_IP, client_udp_port))
 
     threading.Timer(1, offer, [s_udp]).start()
 
@@ -63,21 +67,25 @@ def handle_udp(s_udp: socket):
             )
         except (struct.error, InvalidMessageError) as err:
             Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
+        except OSError as err:
+            if err.errno == 10038:
+                Logger.debug("UDP socket connection terminated prematurely by user")
+            else:
+                Logger.error(str(err))
         except Exception as err:
             Logger.error(f"unknown error of type {type(err).__name__} while handling a UDP request | {str(err)}")
 
 
 def handle_tcp(s_tcp: socket):
     while True:
-        conn, addr = s_tcp.accept()
-        Logger.info(f"Accepted TCP connection from {addr}")
-
         try:
+            conn, addr = s_tcp.accept()
+            Logger.info(f"Accepted TCP connection from {addr}", stamp=True, full_color=False)
+
             # Read the incoming data (file size requested)
             data = b""
             while not data.endswith(b"\n"):  # Ensure we read until the newline
                 chunk = conn.recv(BUFFER_SIZE)
-                # print(f"{chunk=}")
                 if not chunk:  # Client closed connection prematurely
                     raise ConnectionError("Client closed the connection before sending a complete request.")
                 data += chunk
@@ -108,6 +116,11 @@ def handle_tcp(s_tcp: socket):
             )
         except ValueError:
             Logger.error(f"Invalid file size received from {addr}: {data.decode().strip()}", full_color=False)
+        except OSError as err:
+            if err.errno == 10038:
+                Logger.debug("TCP socket connection terminated prematurely by user")
+            else:
+                Logger.error(str(err))
         except Exception as err:
             Logger.error(
                 f"Error during TCP file transfer with {addr}: {type(err).__name__} | {str(err)}", full_color=False
@@ -119,11 +132,8 @@ def handle_tcp(s_tcp: socket):
 
 
 def handle_requests(s_udp: socket, s_tcp: socket):
-    udp_thread = threading.Thread(target=handle_udp, args=(s_udp,))
-    tcp_thread = threading.Thread(target=handle_tcp, args=(s_tcp,))
-
-    udp_thread.daemon = True
-    tcp_thread.daemon = True
+    udp_thread = threading.Thread(target=handle_udp, args=(s_udp,), daemon=True)
+    tcp_thread = threading.Thread(target=handle_tcp, args=(s_tcp,), daemon=True)
 
     udp_thread.start()
     tcp_thread.start()
@@ -147,14 +157,12 @@ def main():
 
             s_tcp.listen(5)  # Allow up to 5 queued connections
 
-            Logger.info(f"Server started, listening on IP address {ip}", display_type=False, )
+            Logger.info(f"Server started, listening on IP address {ip}", display_type=False, always_display=True)
 
-            requests_handler_thread = threading.Thread(target=handle_requests, args=(s_udp, s_tcp))
-            requests_handler_thread.daemon = True
+            requests_handler_thread = threading.Thread(target=handle_requests, args=(s_udp, s_tcp), daemon=True)
             requests_handler_thread.start()
 
-            offer_thread = threading.Thread(target=offer, args=(s_udp,))
-            offer_thread.daemon = True
+            offer_thread = threading.Thread(target=offer, args=(s_udp,), daemon=True)
             offer_thread.start()
 
             while True:

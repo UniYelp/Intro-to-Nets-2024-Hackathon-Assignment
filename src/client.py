@@ -11,8 +11,8 @@ from utils.logger import Logger, LogLevels
 from utils.udp import decode_udp, encode_udp, decode_header_udp
 from utils.validations import validate_msg
 
-udp_port = int(os.getenv("UDP_PORT", 13118))
-Logger._log_level = LogLevels.DEBUG
+udp_port = int(os.getenv("UDP_PORT", 13117))
+Logger._log_level = os.getenv("LOG_LEVEL", LogLevels.DEBUG)
 
 
 def init():
@@ -45,7 +45,7 @@ def get_offer(s: socket) -> tuple[tuple[int, int], tuple[str, int]]:
         try:
             data, addr = decode_udp(s, rcv_msg_type)
             data = validate_msg(data, rcv_msg_type)
-            Logger.info(f"Received message: from {addr}")
+            Logger.info(f"Received message: from {addr}", stamp=True, full_color=False)
             return data, addr
         except (os.error, struct.error, InvalidMessageError) as err:
             Logger.warn(f"intercepted a message of unsupported type or size | {str(err)}", full_color=False)
@@ -61,14 +61,16 @@ def handle_udp(s_udp: socket, addr: str, port: int, file_size: int, id: int):
     start_time = time.time()
     s_udp.settimeout(1)
 
-    Logger.info(f"Starting UDP transfer #{id}", stamp=True)
+    Logger.info(f"Starting UDP transfer #{id}", stamp=True, full_color=False)
 
     while count < file_size:
         try:
             (decoded_data, payload), addr = decode_header_udp(s_udp, msg_type)
             validate_msg(decoded_data, msg_type)
             count += len(payload)
-            Logger.debug(f"UDP transfer #{id}: received next udp chunk, got {count/file_size*100:.2f}% of file", stamp=True)
+            Logger.debug(
+                f"UDP transfer #{id}: received next udp chunk, got {count/file_size*100:.2f}% of file", stamp=True
+            )
         except struct.error:
             continue
         except socket.timeout:
@@ -77,11 +79,15 @@ def handle_udp(s_udp: socket, addr: str, port: int, file_size: int, id: int):
     end_time = time.time()
     elapsed_time = end_time - start_time
 
-    Logger.info(f"""
+    Logger.info(
+        f"""
     UDP transfer #{id} finished,
     total time: {elapsed_time:.6f} seconds, total speed: {count/elapsed_time if elapsed_time else count * 1000000 :.2f} bits/second,
     percentage of packets received successfully: {count/file_size*100:.2f}%
-    """, display_type=False, stamp=True)
+    """,
+        display_type=False,
+        always_display=True,
+    )
 
 
 def handle_tcp(addr: str, port: int, file_size: int, id: int):
@@ -100,17 +106,23 @@ def handle_tcp(addr: str, port: int, file_size: int, id: int):
     while count < file_size:
         msg = s_tcp.recv(BUFFER_SIZE)
         count += len(msg)
-        Logger.debug(f"TCP transfer #{id}: received next tcp chunk, got {count / file_size * 100:.2f}% of file", stamp=True)
+        Logger.debug(
+            f"TCP transfer #{id}: received next tcp chunk, got {count / file_size * 100:.2f}% of file", stamp=True
+        )
 
     s_tcp.close()
     end_time = time.time()
     elapsed_time = end_time - start_time
 
-    Logger.info(f"""
+    Logger.info(
+        f"""
     TCP transfer #{id} finished,
     total time: {elapsed_time:.6f} seconds, total speed: {count/elapsed_time if elapsed_time else count * 1000000 :.2f} bits/second,
     percentage of packets received successfully: {count/file_size*100:.2f}%
-    """, display_type=False, stamp=True)
+    """,
+        display_type=False,
+        always_display=True,
+    )
 
 
 def main():
@@ -121,7 +133,7 @@ def main():
         s_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s_udp.bind(("", udp_port))
 
-        Logger.info("Client started, listening for offer requests...", stamp=True, display_type=False)
+        Logger.info("Client started, listening for offer requests...", display_type=False, always_display=True)
 
         while True:
             data, addr = get_offer(s_udp)
@@ -129,18 +141,19 @@ def main():
             server_tcp_port = data[1]
             server_udp_port = data[0]
 
-            print(f"Received offer from {server_ip_address}")
+            Logger.info(f"Received offer from {server_ip_address}", display_type=False, always_display=True)
 
             for i in range(udp_connections):
-                udp_thread = threading.Thread(target=handle_udp, args=(s_udp, server_ip_address, server_udp_port, file_size, i + 1))
-                udp_thread.daemon = True
+                udp_thread = threading.Thread(
+                    target=handle_udp, args=(s_udp, server_ip_address, server_udp_port, file_size, i + 1), daemon=True
+                )
                 udp_thread.start()
                 # handle_udp(s_udp, server_ip_address, server_udp_port, file_size)
 
             for i in range(tcp_connections):
-                tcp_thread = threading.Thread(target=handle_tcp,
-                                              args=(server_ip_address, server_tcp_port, file_size, i + 1))
-                tcp_thread.daemon = True
+                tcp_thread = threading.Thread(
+                    target=handle_tcp, args=(server_ip_address, server_tcp_port, file_size, i + 1), daemon=True
+                )
                 tcp_thread.start()
                 # handle_tcp(server_ip_address, server_tcp_port, file_size)
 
@@ -148,9 +161,11 @@ def main():
                 if thread is not threading.main_thread():
                     thread.join()
 
-            print("All transfers complete, listening to offer requests")
+            Logger.info("All transfers complete, listening to offer requests", display_type=False, always_display=True)
     except KeyboardInterrupt:
         Logger.info("Program terminated by user")
+    except Exception as err:
+        Logger.error(f"unknown error of type {type(err).__name__} | {str(err)}")
 
 
 if __name__ == "__main__":

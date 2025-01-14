@@ -1,4 +1,4 @@
-from src.constants.app import MAGIC_COOKIE, UDP_MSG_TYPE
+from constants.app import MAGIC_COOKIE, UDP_MSG_TYPE
 from .errors import InvalidMessageError, UnexpectedMessageError
 
 

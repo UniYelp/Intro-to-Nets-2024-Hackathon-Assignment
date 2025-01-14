@@ -1,4 +1,4 @@
-from src.constants.colors import RESET, INFO, WARN, ERROR, TIMESTAMP
+from constants.colors import RESET, INFO, WARN, ERROR, TIMESTAMP
 from .stamp import get_formatted_time
 
 INFO_MSG = "INFO"

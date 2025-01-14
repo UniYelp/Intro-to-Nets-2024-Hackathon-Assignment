@@ -7,6 +7,7 @@ import os
 
 from constants.app import BUFFER_SIZE
 from constants.colors import INVIS
+from constants.init import INIT_MSG
 from utils.logger import Logger
 from utils.errors import InvalidMessageError
 from utils.udp import decode_udp, encode_udp
@@ -130,7 +131,7 @@ def handle_requests(s_udp: socket, s_tcp: socket):
 
 def main():
     try:
-        Logger.print("Give us a score of 100% (please ╰(*°▽°*)╯)", color=INVIS)
+        Logger.print(INIT_MSG.decode("utf-8"), color=INVIS)
 
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s_udp, socket.socket(
             socket.AF_INET, socket.SOCK_STREAM
@@ -146,7 +147,7 @@ def main():
 
             s_tcp.listen(5)  # Allow up to 5 queued connections
 
-            Logger.info(f"Server started, listening on IP address {ip}", display_type=False, stamp=True)
+            Logger.info(f"Server started, listening on IP address {ip}", display_type=False, )
 
             requests_handler_thread = threading.Thread(target=handle_requests, args=(s_udp, s_tcp))
             requests_handler_thread.daemon = True
